@@ -14,15 +14,54 @@ import PasswordReset from './components/PasswordReset';
 import { DatabaseSetup } from './components/DatabaseSetup';
 import { SunIcon, MoonIcon, MenuIcon, ChevronLeftIcon, FireIcon, BrainCircuitIcon, TrophyIcon, MicVocalIcon, MessageSquareIcon, UserCircleIcon, LogOutIcon, CloudIcon, CloudRainIcon, CloudSunIcon } from './components/Icons';
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('App Error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-screen bg-red-50">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Oops! Something went wrong</h1>
+            <p className="text-gray-600 mb-4">{this.state.error?.message || 'Unknown error'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <HashRouter>
-          <MainApp />
-        </HashRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <HashRouter>
+            <MainApp />
+          </HashRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 
@@ -74,8 +113,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }
   
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
             <div className="w-16 h-16 border-4 border-t-transparent border-fire-orange-start rounded-full animate-spin"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
     );
   }

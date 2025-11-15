@@ -28,6 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const handleAuthChange = async (_event: string, session: Session | null) => {
+        console.log('[Auth] Event:', _event, 'Session:', !!session);
         if (_event === 'PASSWORD_RECOVERY') {
             setIsPasswordRecovery(true);
         }
@@ -72,11 +73,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setProfile(null); // Clear profile on logout
         }
         setLoading(false);
+        console.log('[Auth] Loading set to false');
     }
     
     // Initial load
+    console.log('[Auth] Getting initial session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('[Auth] Initial session retrieved:', !!session);
         handleAuthChange('INITIAL_SESSION', session);
+    }).catch((err) => {
+        console.error('[Auth] Error getting session:', err);
+        setLoading(false);
     });
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
