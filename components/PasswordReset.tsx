@@ -28,10 +28,13 @@ const PasswordReset: React.FC = () => {
         try {
             const { error } = await supabase.auth.updateUser({ password });
             if (error) throw error;
-            setMessage("Your password has been updated successfully! Redirecting...");
+            setMessage("Your password has been set successfully! Please log in with your new credentials.");
             setTimeout(() => {
+                // Sign out the temporary session from the confirmation link
+                supabase.auth.signOut();
+                // This will cause the app to redirect back to the auth page
                 setIsPasswordRecovery(false);
-            }, 2000);
+            }, 3000);
         } catch (err: unknown) {
             let msg: string;
             if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
@@ -55,7 +58,7 @@ const PasswordReset: React.FC = () => {
                 <div className="text-center">
                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fire-orange-start to-fire-red-end">AptiPro</h1>
                     <p className="mt-2 text-gray-600 dark:text-gray-400">
-                        Create a new password
+                        Create your new password
                     </p>
                 </div>
 
@@ -96,7 +99,7 @@ const PasswordReset: React.FC = () => {
                         disabled={loading || !!message}
                         className="w-full px-4 py-3 font-semibold text-white bg-gradient-to-r from-fire-orange-start to-fire-red-end rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fire-red-end transition-opacity disabled:opacity-50"
                     >
-                        {loading ? 'Updating...' : 'Update Password'}
+                        {loading ? 'Setting Password...' : 'Set Password and Log In'}
                     </button>
                 </form>
             </div>
