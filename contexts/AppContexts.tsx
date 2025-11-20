@@ -28,10 +28,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const handleAuthChange = async (_event: string, session: Session | null) => {
-        console.log('[Auth] Event:', _event, 'Session:', !!session);
+        // This handles the password reset flow. When the user clicks the reset link,
+        // Supabase sends a 'PASSWORD_RECOVERY' event. We set a state to show the PasswordReset component.
         if (_event === 'PASSWORD_RECOVERY') {
             setIsPasswordRecovery(true);
+            // We clear the hash from the URL to prevent this from re-triggering on a page refresh.
+            window.history.replaceState(null, '', window.location.pathname);
         }
+        
+        // For new user sign-ups, the event will be 'SIGNED_IN' after they click the
+        // confirmation link. They will be treated as a normal logged-in user and 
+        // redirected to the dashboard by the ProtectedRoute component.
         
         setSession(session);
         const currentUser = session?.user ?? null;
@@ -60,30 +67,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     .single();
                 
                 if (insertError) {
-                    console.error("Error creating profile:", insertError);
+                    const errorMessage = `Database Error: ${insertError.message}. Details: ${insertError.details || 'N/A'}. Hint: ${insertError.hint || 'N/A'}`;
+                    console.error("Error creating profile:", errorMessage);
+                    setDatabaseError(errorMessage);
                 } else {
                     setProfile(newProfile);
                 }
             } else if (profileData) {
                 setProfile(profileData);
             } else if (error) {
-                console.error("Error fetching profile:", error);
+                const errorMessage = `Database Error: ${error.message}. Details: ${error.details || 'N/A'}. Hint: ${error.hint || 'N/A'}`;
+                console.error("Error fetching profile:", errorMessage);
+                setDatabaseError(errorMessage);
             }
         } else {
             setProfile(null); // Clear profile on logout
         }
         setLoading(false);
-        console.log('[Auth] Loading set to false');
     }
     
     // Initial load
-    console.log('[Auth] Getting initial session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log('[Auth] Initial session retrieved:', !!session);
         handleAuthChange('INITIAL_SESSION', session);
-    }).catch((err) => {
-        console.error('[Auth] Error getting session:', err);
-        setLoading(false);
     });
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
