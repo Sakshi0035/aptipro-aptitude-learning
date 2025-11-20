@@ -1,9 +1,8 @@
-import React, { useState, FormEvent, useEffect } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AppContexts';
 import { Navigate } from 'react-router-dom';
 import { GoogleIcon } from './Icons';
-import AuthSetupInstructions from './AuthSetupInstructions';
 
 const AuthPage: React.FC = () => {
   const { session } = useAuth();
@@ -13,22 +12,6 @@ const AuthPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [authSetupError, setAuthSetupError] = useState<'oauth' | 'email' | null>(null);
-
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('error_description')) {
-        const params = new URLSearchParams(hash.substring(1));
-        const errorDescription = decodeURIComponent(params.get('error_description') || '');
-        if (errorDescription.includes('redirect_uri_mismatch')) {
-            setAuthSetupError('oauth');
-        } else {
-            setError(`Google Auth Error: ${errorDescription}`);
-        }
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-  }, []);
 
   if (session) {
     return <Navigate to="/dashboard" replace />;
@@ -39,7 +22,6 @@ const AuthPage: React.FC = () => {
     setLoading(true);
     setError(null);
     setMessage(null);
-    setAuthSetupError(null);
 
     try {
       let result;
@@ -47,11 +29,6 @@ const AuthPage: React.FC = () => {
         result = await supabase.auth.signInWithPassword({ email, password });
       } else {
         result = await supabase.auth.signUp({ email, password });
-        if (result.error?.message.toLowerCase().includes('sign-ups are disabled')) {
-            setAuthSetupError('email');
-            setLoading(false);
-            return;
-        }
       }
       
       if (result.error) throw result.error;
@@ -64,6 +41,9 @@ const AuthPage: React.FC = () => {
       let msg: string;
       if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
           msg = (err as { message: string }).message;
+          if (msg.toLowerCase().includes('sign-ups are disabled')) {
+            msg = 'Sign-ups are currently disabled.';
+          }
       } else if (err instanceof Error) {
           msg = err.message;
       } else if (typeof err === 'string') {
@@ -105,16 +85,11 @@ const AuthPage: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     setError(null);
-    setAuthSetupError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
     });
     if(error) {
-        if (error.message.toLowerCase().includes('provider not supported') || error.message.toLowerCase().includes('not enabled for this project')) {
-            setAuthSetupError('oauth');
-        } else {
-            setError(error.message);
-        }
+        setError(`Google sign-in error: ${error.message}`);
     }
   }
   
@@ -134,7 +109,6 @@ const AuthPage: React.FC = () => {
             </p>
         </div>
         
-        {authSetupError && <AuthSetupInstructions type={authSetupError} />}
         {error && <div className="p-3 text-sm text-center text-red-800 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-300">{error}</div>}
         {message && <div className="p-3 text-sm text-center text-green-800 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300">{message}</div>}
 
@@ -217,7 +191,6 @@ const AuthPage: React.FC = () => {
               setView(view === 'login' ? 'signup' : 'login');
               setError(null);
               setMessage(null);
-              setAuthSetupError(null);
             }} 
             className="ml-1 font-medium text-fire-orange-start hover:underline">
             {pageInfo[view].toggleLink}
