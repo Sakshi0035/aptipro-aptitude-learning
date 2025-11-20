@@ -49,17 +49,16 @@ const Leaderboard: React.FC = () => {
                     setUserRank((count ?? 0) + 1);
                 }
             } catch (err: unknown) {
+                console.error("Error fetching leaderboard:", err);
                 let message: string;
-                if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
-                    message = (err as { message: string }).message;
-                } else if (err instanceof Error) {
-                    message = err.message;
-                } else if (typeof err === 'string') {
-                    message = err;
+                if (err && typeof err === 'object' && 'message' in err) {
+                    const supabaseError = err as { message:string; details?: string; hint?: string };
+                    message = supabaseError.message;
+                    if (supabaseError.details) message += ` Details: ${supabaseError.details}`;
+                    if (supabaseError.hint) message += ` Hint: ${supabaseError.hint}`;
                 } else {
                     message = "An unexpected error occurred while loading the leaderboard.";
                 }
-                console.error("Error fetching leaderboard:", err);
                 setFetchError(message);
             }
         };
