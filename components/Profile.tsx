@@ -159,19 +159,22 @@ const Profile: React.FC = () => {
         } catch (err: unknown) {
             console.error("Error updating profile:", err);
             let message: string;
-    
-            if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
-                message = (err as { message: string }).message;
+            if (err && typeof err === 'object' && 'message' in err) {
+                const supabaseError = err as { message: string; details?: string; hint?: string };
+                message = supabaseError.message;
+                
+                if (message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
+                    message = "This username is already taken. Please choose another one.";
+                } else {
+                    if (supabaseError.details) message += ` Details: ${supabaseError.details}`;
+                    if (supabaseError.hint) message += ` Hint: ${supabaseError.hint}`;
+                }
             } else {
                 try {
                     message = JSON.stringify(err);
                 } catch {
                     message = "An un-serializable error occurred during the update.";
                 }
-            }
-             
-            if (message.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
-                message = "This username is already taken. Please choose another one.";
             }
             
             alert(`Error updating profile: ${message}`);
@@ -215,8 +218,11 @@ const Profile: React.FC = () => {
             } catch (err: unknown) {
                 console.error("Error fetching profile data:", err);
                 let message: string;
-                if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
-                    message = (err as { message: string }).message;
+                if (err && typeof err === 'object' && 'message' in err) {
+                    const supabaseError = err as { message: string; details?: string; hint?: string };
+                    message = supabaseError.message;
+                    if (supabaseError.details) message += ` Details: ${supabaseError.details}`;
+                    if (supabaseError.hint) message += ` Hint: ${supabaseError.hint}`;
                 } else {
                     try {
                         message = JSON.stringify(err);
@@ -304,8 +310,10 @@ const Profile: React.FC = () => {
         } catch(err: unknown) {
             console.error("Error uploading avatar:", err);
             let message: string;
-            if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
-                message = (err as { message: string }).message;
+            if (err && typeof err === 'object' && 'message' in err) {
+                const supabaseError = err as { message: string; details?: string; hint?: string; error?: string };
+                // Storage errors can have a different structure
+                message = supabaseError.message || supabaseError.error || 'An unknown storage error occurred.';
             } else {
                 try {
                     message = JSON.stringify(err);
