@@ -30,6 +30,7 @@ const Practice: React.FC = () => {
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
     const [saveError, setSaveError] = useState<string | null>(null);
     const [showConfirmEndModal, setShowConfirmEndModal] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('Generating your test...');
 
     const selectedTopic = topics.find(t => t.key === topicKey);
 
@@ -41,6 +42,28 @@ const Practice: React.FC = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [topicKey]);
+    
+    useEffect(() => {
+        if (testState === 'loading') {
+            const messages = [
+                "Connecting to our AI quiz master...",
+                `Analyzing the complexities of ${selectedTopic?.name || 'your topic'}...`,
+                "Crafting some challenging questions for you...",
+                "Sharpening the pencils... almost ready!",
+                "Just a moment, brilliance takes time!"
+            ];
+            
+            let messageIndex = 0;
+            setLoadingMessage(messages[0]);
+            
+            const interval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % messages.length;
+                setLoadingMessage(messages[messageIndex]);
+            }, 2500);
+
+            return () => clearInterval(interval);
+        }
+    }, [testState, selectedTopic]);
 
     useEffect(() => {
         if (testState === 'in-progress' && timeLeft > 0) {
@@ -101,17 +124,16 @@ const Practice: React.FC = () => {
                 }
 
             } catch (err: unknown) {
+                console.error("Failed to save performance data", err);
                 let message: string;
-                if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
-                    message = (err as { message: string }).message;
-                } else if (err instanceof Error) {
-                    message = err.message;
-                } else if (typeof err === 'string') {
-                    message = err;
+                if (err && typeof err === 'object' && 'message' in err) {
+                    const supabaseError = err as { message:string; details?: string; hint?: string };
+                    message = supabaseError.message;
+                    if (supabaseError.details) message += ` Details: ${supabaseError.details}`;
+                    if (supabaseError.hint) message += ` Hint: ${supabaseError.hint}`;
                 } else {
                     message = 'An unexpected error occurred while saving your test results.';
                 }
-                console.error("Failed to save performance data", err);
                 setSaveError(message);
             }
         }
@@ -165,9 +187,10 @@ const Practice: React.FC = () => {
 
     if (testState === 'loading') {
         return (
-            <div className="flex flex-col items-center justify-center h-full">
+            <div className="flex flex-col items-center justify-center h-full text-center">
                 <div className="w-16 h-16 border-4 border-t-transparent border-fire-orange-start rounded-full animate-spin"></div>
-                <p className="mt-4 text-lg">Generating your test...</p>
+                <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-300">{loadingMessage}</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Please wait while we prepare your personalized quiz.</p>
             </div>
         );
     }
