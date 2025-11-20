@@ -56,17 +56,16 @@ const Dashboard: React.FC = () => {
                 processMonthlyActivity(results);
             }
         } catch (err: unknown) {
+            console.error("Error fetching dashboard data:", err);
             let message: string;
             if (err && typeof err === 'object' && 'message' in err) {
-                message = String((err as { message: unknown }).message);
-            } else if (err instanceof Error) {
-                message = err.message;
-            } else if (typeof err === 'string') {
-                message = err;
+                const supabaseError = err as { message:string; details?: string; hint?: string };
+                message = supabaseError.message;
+                if (supabaseError.details) message += ` Details: ${supabaseError.details}`;
+                if (supabaseError.hint) message += ` Hint: ${supabaseError.hint}`;
             } else {
                 message = "An unexpected error occurred while loading dashboard data.";
             }
-            console.error("Error fetching dashboard data:", err);
             setFetchError(message);
         } finally {
             setLoading(false);
